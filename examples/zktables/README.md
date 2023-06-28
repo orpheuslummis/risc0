@@ -6,15 +6,17 @@ Participants encrypt their input with the public key of the aggregation node and
 
 The aggregation node is designed to run in a secure enclave such that the host can't observe the decrypted data. The voting process can proceed in rounds.
 
+In the proof of concept:
+
 The primary functionalities are offered via two command-line commands:
 
 - `zktables serve`: This command is used by the aggregation node to receive votes and produce proof of voting round. Additionally, it provides information on the home page. <http://localhost:3030/> by default.
 
 - `zktables vote`: This command is used by participants to send their vote. The command takes in three parameters: a number N which represents the vote, a publickey PK of the aggregation node and a host HOST address which is where the aggregation node is located.
 
-In the proof of concept:
-- the public key scheme used is RSA (Rivest–Shamir–Adleman)
-- the aggregation `f(votes)` is just averaging
+- The public key scheme used is RSA (Rivest–Shamir–Adleman). It could perhaps be switched for a scheme that is quantum-ready and blockchain-compatible in the future.
+
+- The aggregation `f(votes)` is just averaging. The `f` and `votes` can be changed for more complex input data and integration function.
 
 
 
