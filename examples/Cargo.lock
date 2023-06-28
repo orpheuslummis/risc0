@@ -2509,6 +2509,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
+name = "orpheus"
+version = "0.1.0"
+dependencies = [
+ "orpheus-core",
+ "orpheus-methods",
+ "risc0-zkvm",
+ "serde",
+]
+
+[[package]]
+name = "orpheus-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "orpheus-methods"
+version = "0.1.0"
+dependencies = [
+ "risc0-build",
+]
+
+[[package]]
 name = "os_str_bytes"
 version = "6.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
