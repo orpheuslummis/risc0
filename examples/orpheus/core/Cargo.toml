@@ -1,5 +1,5 @@
 [package]
-name = "orpheus-core"
+name = "zktables-core"
 version = "0.1.0"
 edition = "2021"
 
