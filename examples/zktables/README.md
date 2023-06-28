@@ -22,6 +22,8 @@ The primary functionalities are offered via two command-line commands:
 
 ## Run it locally
 
+Ensure Rust is intalled (<https://www.rust-lang.org/tools/install>).
+
 Clone the repository: `git clone https://github.com/username/zktables.git`.
 
 In Terminal 1, start the service with `cargo run -- serve`. This will display a public key in the logs.
