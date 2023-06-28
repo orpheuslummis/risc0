@@ -5,6 +5,17 @@ use risc0_zkvm::{
 use zktables_core::{Output, Votes};
 use zktables_methods::{ZKTABLES_GUEST_ELF, ZKTABLES_GUEST_ID};
 
+pub mod cli;
+pub mod crypto;
+pub mod db;
+pub mod server;
+
+// Default configuration
+pub const DEFAULT_SEED: u64 = 0;
+pub const DEFAULT_NBITS: usize = 2048;
+pub const DEFAULT_HOST: &str = "127.0.0.1:3030";
+pub const DEFAULT_PATH: &str = "./keys/";
+
 pub fn execute_and_prove(votes: Votes) -> (Box<dyn risc0_zkvm::receipt::SessionReceipt>, Output) {
     let env = ExecutorEnv::builder()
         .add_input(&to_vec(&votes).unwrap())
