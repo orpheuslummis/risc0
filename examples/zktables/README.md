@@ -12,7 +12,10 @@ The primary functionalities are offered via two command-line commands:
 
 - `zktables vote`: This command is used by participants to send their vote. The command takes in three parameters: a number N which represents the vote, a publickey PK of the aggregation node and a host HOST address which is where the aggregation node is located.
 
-In the proof of concept, the aggregation `f(votes)` is just averaging.
+In the proof of concept:
+- the public key scheme used is RSA (Rivest–Shamir–Adleman)
+- the aggregation `f(votes)` is just averaging
+
 
 
 ## Run it locally
