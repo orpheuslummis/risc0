@@ -6,18 +6,15 @@ Participants encrypt their input with the public key of the aggregation node and
 
 The aggregation node is designed to run in a secure enclave such that the host can't observe the decrypted data. The voting process can proceed in rounds.
 
-In the proof of concept:
+The primary functionalities:
 
-The primary functionalities are offered via two command-line commands:
+- `zktables genkey <name>`: This command is to generate public and private keys, to be stored under its name in `./key/`. The keys are used by both client and server.
 
 - `zktables serve`: This command is used by the aggregation node to receive votes and produce proof of voting round. Additionally, it provides information on the home page. <http://localhost:3030/> by default.
 
 - `zktables vote`: This command is used by participants to send their vote. The command takes in three parameters: a number N which represents the vote, a publickey PK of the aggregation node and a host HOST address which is where the aggregation node is located.
 
-- The public key scheme used is RSA (Rivest–Shamir–Adleman). It could perhaps be switched for a scheme that is quantum-ready and blockchain-compatible in the future.
-
 - The aggregation `f(votes)` is just averaging. The `f` and `votes` can be changed for more complex input data and integration function.
-
 
 
 ## Run it locally
@@ -30,3 +27,20 @@ In Terminal 1, start the service with `cargo run -- serve`. This will display a 
 
 In Terminal 2, cast a vote using` cargo run -- vote --input N --publickey PK --host http://localhost:3030`, where `N` is your vote, `PK` is the public key from Terminal 1, and the host address is the location of the aggregation node.
 
+
+## Notes
+
+On tools used:
+
+- the ZK system used is `risc0-zkvm`
+- public key cryptography using `RSA`, specifically to encrypt inputs to the node, and for the node to encrypt the results to the participants
+- HTTP server with `warp`
+- HTTP request with `reqwest`
+- CLI with `clap`
+- sqlite database to store the (encrypted) results, with `rusqlite`
+
+By default, the keys are stored in `./keys` and are referred to by name, i.e. `pk_rsa_name.pub` and `pk_rsa_name.priv`
+
+The public key scheme used is RSA (Rivest–Shamir–Adleman). It could perhaps be switched for a scheme that is quantum-ready and blockchain-compatible in the future.
+
+PKCS#1 v1.5 encryption
