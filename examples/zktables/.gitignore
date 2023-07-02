@@ -1,3 +1,2 @@
-*.pub
-*.priv
-keys
+/keys
+/build

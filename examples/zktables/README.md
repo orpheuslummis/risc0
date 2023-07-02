@@ -8,7 +8,9 @@ The aggregation node is designed to run in a secure enclave such that the host c
 
 The primary functionalities:
 
-- `zktables genkey <name>`: This command is to generate public and private keys, to be stored under its name in `./key/`. The keys are used by both client and server.
+- `zktables keygen --name <name>`: This command is to generate public and private keys, to be stored under its name in `./key/`. The keys are used by both client and server.
+
+- `zktables keyget --name <name>`: This command is to get the public key of a previously generated keypair, to be used by the client to encrypt their vote.
 
 - `zktables serve`: This command is used by the aggregation node to receive votes and produce proof of voting round. Additionally, it provides information on the home page. <http://localhost:3030/> by default.
 
@@ -16,16 +18,30 @@ The primary functionalities:
 
 - The aggregation `f(votes)` is just averaging. The `f` and `votes` can be changed for more complex input data and integration function.
 
+It is implemented in many suboptimal ways, for the sake of simplicity. It is a proof of concept.
+
 
 ## Run it locally
 
 Ensure Rust is intalled (<https://www.rust-lang.org/tools/install>).
 
-Clone the repository: `git clone https://github.com/username/zktables.git`.
+```shell
+# clone the repo
+git clone https://github.com/orpheuslummis/risc0
+cd risc0/examples/zktables
+```
 
-In Terminal 1, start the service with `cargo run -- serve`. This will display a public key in the logs.
+In terminal 1:
+```shell
+cargo run -- keygen --name myexperiment
+cargo run -- serve --key myexperiment
+```
 
-In Terminal 2, cast a vote using` cargo run -- vote --input N --publickey PK --host http://localhost:3030`, where `N` is your vote, `PK` is the public key from Terminal 1, and the host address is the location of the aggregation node.
+In terminal 2:
+```shell
+# where `N` is your vote, `PK` is the public key from Terminal 1
+cargo run -- vote --input N --pubkey PK
+```
 
 
 ## Notes
@@ -43,4 +59,22 @@ By default, the keys are stored in `./keys` and are referred to by name, i.e. `p
 
 The public key scheme used is RSA (Rivest–Shamir–Adleman). It could perhaps be switched for a scheme that is quantum-ready and blockchain-compatible in the future.
 
-PKCS#1 v1.5 encryption
+In this version we have the results the same for all participants, but in the future we could have different results for different participants.
+
+
+
+## One run through of the protocol
+
+Participants send their encrypted votes to `/vote`.
+A round completes when N votes - which is a param defined by the server.
+The round data is sent to the zkVM, such as to decrypt, compute f(votes), and encrypt results for each participant.
+The server exposes global state, including results on `/.
+
+
+## Questions
+
+Server state
+
+Guest state
+
+A better way to do rounds? Time-bound, or whitelist of participants.

@@ -1,24 +1,109 @@
-use rsa::{RsaPrivateKey, RsaPublicKey};
-use warp::Filter;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
+
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Serialize;
+use zktables_core::crypto::{self, Privkey, Pubkey};
+
+type Data = Vec<u8>;
+
+#[derive(Debug, Clone, Serialize)]
+struct ServerState {
+    rounds: Vec<Round>,
+    keys: (Pubkey, Privkey),
+}
+
+impl Default for ServerState {
+    fn default() -> Self {
+        let (pubkey, privkey) = crypto::generate_keypair();
+        Self {
+            rounds: Vec::new(),
+            keys: (pubkey, privkey),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct Round {
+    inputs: HashMap<Pubkey, Data>,
+    outputs: HashMap<Pubkey, Data>,
+    proof: u8, // TODO
+}
+
+impl Round {
+    // fn new(inputs: HashMap<Pubkey, Data>, outputs: HashMap<Pubkey, Data>) -> Self
+    // {     Self {
+    //         inputs,
+    //         outputs,
+    //         proof: todo!(),
+    //     }
+    // }
+}
+
+#[derive(Clone, Serialize)]
+struct UserInput {
+    pubkey: Pubkey,
+    data: Data, // encrypted
+}
+
+type DB = Arc<RwLock<ServerState>>;
 
 #[tokio::main]
-pub async fn serve(pubkey: RsaPublicKey, privkey: RsaPrivateKey, host: String) {
-    let home = warp::path::end().map(home);
+pub async fn server(host: String) {
+    // Prepare default server state
+    let (pubkey, privkey) = crypto::generate_keypair();
+    let db = DB::default();
+    db.write().unwrap().keys = (pubkey, privkey);
 
-    let vote = warp::path!("vote" / u32 / String).map(vote);
+    let app = Router::new()
+        .route("/", get(index))
+        .route("/vote", post(vote))
+        .with_state(db);
 
-    let routes = vote.or(home);
-
-    println!("Serving on host {:?}, with pubkey {:?}", host, pubkey);
-
-    let addr = host.parse::<std::net::SocketAddr>().unwrap();
-    warp::serve(routes).run(addr).await;
+    println!("Listening on http://{}", host);
+    let addr = host.parse().expect("Invalid host address");
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
-fn vote(number: u32, publickey: String) -> String {
-    format!("Voting for {} with public key {}", number, publickey)
+async fn vote(
+    State(db): State<DB>,
+    Json(input): Json<UserInput>,
+) -> impl IntoResponse {
+    let UserInput { pubkey, data } = input;
+    println!("Received data from {:?}", pubkey);
+    println!("data: {:?}", data);
+
+    // let (pubkey, privkey) = db.read().unwrap().keys.clone();
+    // if round complete,
+    // TODO
+    // if false {
+    //     let error_response = serde_json::json!({
+    //         "status": "fail",
+    //         "message": format!("Input with pubkey: '{}' already exists in the
+    // current round", "TODO"),     });
+    //     return Err((StatusCode::CONFLICT, Json(error_response)));
+    // }
+    Json("OK")
 }
 
-fn home() -> String {
-    format!("Home page")
+async fn keys(State(db): State<DB>) -> impl IntoResponse {
+    let (pubkey, privkey) = db.read().unwrap().keys.clone();
+    Json((pubkey, privkey))
+}
+
+async fn index(State(db): State<DB>) -> impl IntoResponse {
+    println!("Received request at index");
+    let state = db.read().unwrap().clone();
+    Json(state)
 }

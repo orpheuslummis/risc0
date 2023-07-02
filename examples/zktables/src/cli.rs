@@ -1,9 +1,12 @@
 use clap::{Parser, Subcommand};
-
-use crate::{
-    crypto::{genkey, load_keys},
-    server, DEFAULT_HOST,
+use rsa::pkcs1::EncodeRsaPublicKey;
+use zktables_core::{
+    crypto::{self, generate_keypair, write_keys_to_dir},
+    Vote,
 };
+
+use crate::{client, server, DEFAULT_HOST, DEFAULT_KEYPATH};
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct CLI {
@@ -16,21 +19,31 @@ struct CLI {
 
 #[derive(Subcommand)]
 enum Commands {
-    Genkey {
+    Keygen {
         #[arg(long)]
         name: String,
+        #[arg(long)]
+        keydir: Option<String>,
+    },
+    Keyget {
+        #[arg(long)]
+        name: String,
+        #[arg(long)]
+        keydir: Option<String>,
     },
     Vote {
-        #[arg(short = 'n', long)]
-        number: u32,
-        #[arg(short = 'p', long)]
-        pubkey: String,
-        #[arg(short = 's', long)]
+        #[arg(long)]
+        vote: Vote,
+        #[arg(long)]
+        key: String,
+        #[arg(long = "server.pubkey")]
+        server_pubkey: String,
+        #[arg(long)]
+        keydir: Option<String>,
+        #[arg(long)]
         host: Option<String>,
     },
-    Serve {
-        #[arg(long)]
-        pubkey: String,
+    Server {
         #[arg(long)]
         host: Option<String>,
     },
@@ -40,54 +53,68 @@ pub fn main() {
     let cli = CLI::parse();
 
     match &cli.command {
-        Some(Commands::Genkey { name }) => {
-            cmd_genkey(name);
+        Some(Commands::Keygen { name, keydir }) => {
+            cmd_keygen(
+                name,
+                keydir.as_ref().unwrap_or(&DEFAULT_KEYPATH.to_string()),
+            );
+        }
+        Some(Commands::Keyget { name, keydir }) => {
+            cmd_keyget(
+                name,
+                keydir.as_ref().unwrap_or(&DEFAULT_KEYPATH.to_string()),
+            );
         }
         Some(Commands::Vote {
-            number,
-            pubkey,
+            vote,
+            key,
+            server_pubkey,
             host,
+            keydir,
         }) => {
-            cmd_vote(*number, pubkey.clone(), host.clone());
+            cmd_vote(
+                *vote,
+                key.clone(),
+                server_pubkey.clone(),
+                host.clone(),
+                keydir.clone().unwrap_or(DEFAULT_KEYPATH.to_string()),
+            );
         }
-        Some(Commands::Serve { pubkey, host }) => {
-            cmd_serve(pubkey, host.as_ref().unwrap_or(&DEFAULT_HOST.to_string()));
+        Some(Commands::Server { host }) => {
+            cmd_server(host.as_ref().unwrap_or(&DEFAULT_HOST.to_string()));
         }
-        None => {}
+        None => {
+            println!("No command specified");
+        }
     }
 }
 
-pub fn cmd_vote(number: u32, publickey: String, host: Option<String>) {
-    println!(
-        "Voting for {} with public key {} on host {:?}",
-        number, publickey, host
-    );
+pub fn cmd_server(host: &String) {
+    server::server(host.to_string());
 }
 
-pub fn cmd_serve(pubkey: &String, host: &String) {
-    println!("Serving on host {:?}", host);
-    // load the key
-    let (pubkey, privkey) = load_keys(pubkey.clone());
-    // start the server
-    server::serve(pubkey, privkey, host.to_string());
+pub fn cmd_keygen(name: &String, keydir: &String) {
+    println!("Generating key pair {} in {}", name, keydir);
+    let (pubkey, privkey) = generate_keypair();
+    write_keys_to_dir(name.clone(), keydir.clone(), pubkey, privkey);
 }
 
-pub fn cmd_genkey(name: &String) {
-    println!("Generating key pair for {}", name);
-
-    // Generate a key pair in PKCS#8 DER format
-    genkey(name.clone());
-
-    // let signing_key = SigningKey::random(&mut OsRng);
-    // let verifying_key = VerifyingKey::from(&signing_key);
-
-    // // Convert the keys to byte arrays
-    // let public_key_bytes = verifying_key.to_encoded_point().as_bytes();
-    // let secret_key_bytes = signing_key.to_bytes().as_slice();
-
-    // let path_pub = format!("pk_rsa_{}.pub", name);
-    // let path_priv = format!("pk_rsa_{}.priv", name);
-    // write(path_pub, public_key_bytes).expect("Failed to write public key to
-    // file"); write(path_priv, secret_key_bytes).expect("Failed to write
-    // secret key to file");
+pub fn cmd_keyget(name: &String, keydir: &String) {
+    let (pubkey, _) = crypto::load_keys(name.clone(), keydir.clone());
+    let pubkey_serialized = pubkey
+        .0
+        .to_pkcs1_pem(rsa::pkcs1::LineEnding::default())
+        .unwrap();
 }
+
+pub fn cmd_vote(
+    vote: Vote,
+    key: String,
+    server_pubkey: String,
+    host: Option<String>,
+    keydir: String,
+) {
+    client::vote(vote, key, server_pubkey, host, keydir);
+}
+
+//
